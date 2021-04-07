@@ -1,4 +1,4 @@
-import random
+import secrets
 from discord.ext import commands, tasks
 
 from configuration import ConfigNode
@@ -21,10 +21,16 @@ class Whine(commands.Cog):
             if c is not None:
                 self.verified_channel.append(c)
 
-    @tasks.loop(hours=1)
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if self.bot.user.mentioned_in(message):
+            msg = secrets.choice(self.config.get_list_node(ConfigNode.WHINES))
+            await message.channel.send(msg)
+
+    @tasks.loop(hours=2)
     async def whine(self):
-        channel = random.choice(self.verified_channel)
-        msg = random.choice(self.config.get_list_node(ConfigNode.WHINES))
+        channel = secrets.choice(self.verified_channel)
+        msg = secrets.choice(self.config.get_list_node(ConfigNode.WHINES))
         await channel.send(msg)
 
     @whine.before_loop

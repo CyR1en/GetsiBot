@@ -21,7 +21,7 @@ class Whine(commands.Cog):
             if c is not None:
                 self.verified_channel.append(c)
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(hours=1)
     async def whine(self):
         channel = random.choice(self.verified_channel)
         msg = random.choice(self.config.get_list_node(ConfigNode.WHINES))

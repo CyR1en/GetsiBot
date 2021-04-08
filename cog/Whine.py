@@ -4,13 +4,6 @@ from discord.ext import commands, tasks
 from configuration import ConfigNode
 
 
-def _is_master():
-    async def predicate(ctx):
-        return ctx.author.id == 193970511615623168
-
-    return commands.check(predicate)
-
-
 class Whine(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -37,11 +30,16 @@ class Whine(commands.Cog):
         if self.bot.user.mentioned_in(message):
             await self._send_random_whine(message.channel)
 
-    @_is_master()
     @commands.group()
+    @commands.is_owner()
     async def add(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send("Huh?")
+
+    @add.error
+    async def add_error(self, ctx, error):
+        if isinstance(error, commands.CheckFailure):
+            await ctx.send('Only Ethan can put words in my mouth')
 
     @commands.command()
     async def whines(self, ctx):

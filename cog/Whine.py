@@ -62,7 +62,7 @@ class Whine(commands.Cog):
         await self._verify_channels()
         await ctx.send("Okay I added that channel")
 
-    @tasks.loop(hours=2)
+    @tasks.loop(hours=6)
     async def whine_task(self):
         channel = secrets.choice(self.verified_channel)
         await self._send_random_whine(channel)

@@ -1,5 +1,4 @@
 import secrets
-
 from discord.ext import commands, tasks
 
 from configuration import ConfigNode

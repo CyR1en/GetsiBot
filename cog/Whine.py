@@ -1,4 +1,5 @@
 import secrets
+
 from discord.ext import commands, tasks
 
 from configuration import ConfigNode
@@ -36,6 +37,12 @@ class Whine(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send("Huh?")
 
+    @commands.group()
+    @commands.is_owner()
+    async def remove(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Huh?")
+
     @add.error
     async def add_error(self, ctx, error):
         if isinstance(error, commands.CheckFailure):
@@ -48,21 +55,52 @@ class Whine(commands.Cog):
 
     @add.command()
     async def whine(self, ctx, *args):
-        whines = self.config.get_list_node(ConfigNode.WHINES)
-        for arg in args:
-            whines.append(arg)
-        self.config.set(ConfigNode.WHINES, str(whines))
-        await ctx.send("Okay I added that whine")
+        await self._mutate_whine(ctx, *args)
+
+    @remove.command(name='whine')
+    async def whine_r(self, ctx, *args):
+        await self._mutate_whine(ctx, *args)
 
     @add.command()
     async def channel(self, ctx, c_id: int):
+        await self._mutate_channel(ctx, c_id)
+
+    @remove.command(name='channel')
+    async def channel_r(self, ctx, c_id: int):
+        await self._mutate_channel(ctx, c_id)
+
+    async def _mutate_whine(self, ctx, *args):
+        whines = self.config.get_list_node(ConfigNode.WHINES)
+        func = whines.append if 'add' in ctx.invoked_parents else whines.remove
+        for arg in args:
+            func(arg)
+        self.config.set(ConfigNode.WHINES, str(whines))
+        op_str = 'added' if ctx.invoked_parents[0] == 'add' else 'removed'
+        await ctx.send(f'Okay I {op_str} that whine')
+
+    async def _mutate_channel(self, ctx, c_id: int):
         c_ids = self.config.get_list_node(ConfigNode.CHANNELS)
-        c_ids.append(c_id)
+        func = c_ids.append if 'add' in ctx.invoked_parents else c_ids.remove
+        func(c_id)
         self.config.set(ConfigNode.CHANNELS, str(c_ids))
         await self._verify_channels()
-        await ctx.send("Okay I added that channel")
+        op_str = 'added' if ctx.invoked_parents[0] == 'add' else 'removed'
+        await ctx.send(f'Okay I {op_str} that channel')
 
-    @tasks.loop(hours=2)
+    @commands.command()
+    @commands.is_owner()
+    async def interval(self, ctx, s: float, m: float, h: float):
+        self.whine_task.change_interval(seconds=s, minutes=m, hours=h)
+        self.whine_task.restart()
+        await ctx.send(f'Interval changed to `s = {s}, m = {m}, h = {h}`')
+
+    @commands.command()
+    async def channels(self, ctx):
+        c_ids = self.config.get_list_node(ConfigNode.CHANNELS)
+        channel_names = [ctx.guild.get_channel(c).name for c in c_ids]
+        await ctx.send("`{}`".format(str(channel_names)))
+
+    @tasks.loop(hours=12)
     async def whine_task(self):
         channel = secrets.choice(self.verified_channel)
         await self._send_random_whine(channel)

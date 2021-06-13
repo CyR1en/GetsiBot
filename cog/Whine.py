@@ -96,7 +96,7 @@ class Whine(commands.Cog):
     @commands.command()
     async def channels(self, ctx):
         c_ids = self.config.get_list_node(ConfigNode.CHANNELS)
-        channel_names = [ctx.guild.get_channel(c).name for c in c_ids]
+        channel_names = [channel.name for channel in filter(None, [ctx.guild.get_channel(c) for c in c_ids])]
         await ctx.send("`{}`".format(str(channel_names)))
 
     @tasks.loop(hours=12)
